@@ -28,12 +28,20 @@ jobs:
 
       - name: Set up Clang
         run: |
+          set -euo pipefail
           sudo apt-get update -y
-          sudo apt-get install software-properties-common -y
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/llvm-toolchain.gpg > /dev/null
-          echo "deb [signed-by=/usr/share/keyrings/llvm-toolchain.gpg] http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-18 main" | sudo tee /etc/apt/sources.list.d/llvm.list
-          sudo apt-get update -y
-          sudo apt-get install clang-format-18 -y
+          # Debian 13 has no software-properties-common. Prefer the distro
+          # clang-format; fall back to apt.llvm.org for clang-format-18.
+          if apt-cache show clang-format-18 >/dev/null 2>&1; then
+            sudo apt-get install -y clang-format-18
+          else
+            sudo apt-get install -y wget gnupg lsb-release
+            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/llvm-toolchain.gpg > /dev/null
+            echo "deb [signed-by=/usr/share/keyrings/llvm-toolchain.gpg] http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-18 main" | sudo tee /etc/apt/sources.list.d/llvm.list
+            sudo apt-get update -y
+            sudo apt-get install -y clang-format-18
+          fi
+          clang-format-18 --version
       - name: Run clang-format
         id: clang-format
         run: |

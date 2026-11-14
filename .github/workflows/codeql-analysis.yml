@@ -25,7 +25,9 @@ permissions:
 jobs:
   analyze:
     name: Analyze
-    runs-on: [self-hosted, godesk]
+    # cpp autobuild OOMed the 8 GiB runner once and then failed cmake
+    # autobuild under the 5G heavy slice. Keep this job on GitHub-hosted.
+    runs-on: ubuntu-latest
     if: github.event_name != 'schedule' || github.repository == 'valkey-io/valkey'
     permissions:
       security-events: write

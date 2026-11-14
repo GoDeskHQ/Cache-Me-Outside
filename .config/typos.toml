@@ -31,6 +31,8 @@ Hashi = "Hashi" # HashiCorp, which the checker splits before Corp
 dbe = "dbe"
 cmo = "cmo"
 CMO = "CMO"
+Pn = "Pn"
+pn = "pn"
 
 [default]
 extend-ignore-re = [
