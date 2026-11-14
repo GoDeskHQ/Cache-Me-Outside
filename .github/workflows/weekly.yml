@@ -13,7 +13,7 @@ concurrency:
 jobs:
   determine-release-branches:
     if: github.repository == 'valkey-io/valkey'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     outputs:
       branches: ${{ steps.release-branches.outputs.branches }}
       has-branches: ${{ steps.release-branches.outputs.has-branches }}
