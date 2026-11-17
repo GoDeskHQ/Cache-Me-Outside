@@ -511,6 +511,80 @@ Interactive desktops (if Dad's computer or a similar machine is used as a client
 - Security: a raw block export is a disk on the network. A mistake in `attr_allow_any_host` or a bind to the wrong address is a data-exfiltration and corruption risk. Treat the firewall and auth steps as mandatory, including in a "temporary" lab setup.
 - Opportunity cost: used DDR4 in existing modern hosts, or simply giving a primary CMO host more of *its* RAM, may beat this entire project on latency and on operational simplicity. Revisit that comparison with current prices before un-parking the work.
 
+## 13. Supporting open-source projects
+
+Checked on 2026-11-17. This section is a survey of existing tools that can export an old DDR3 server's RAM to other machines as a RAM disk, remote swap, a block cache, or a cache process. It does not change the parked status of this idea, and it is not a decision to install or adopt anything.
+
+A search of indexed Grok Bot chats from 2026-08-20 through 2026-11-17, and of main-agent transcripts, did not turn up an earlier supporting GitHub project. Names that later looked like good candidates (Infiniswap, Fastswap, RAMCloud, nbdkit, r3map, ram-dl) do not appear in those chats. The idea in this document starts on 2026-11-11 from the Astera Labs Leo Short, and the runbook already uses in-tree Linux NVMe-oF TCP. Chats older than 2026-08-20 were not in the index.
+
+Facts below come from the project's GitHub or GitLab API and from its `LICENSE` / `COPYING` file, not from memory. "Last activity" is the latest commit on the default branch, converted to Asia/Taipei. GitHub's `updatedAt` / `pushed_at` timestamps were not used, because they can move without a commit. Anything not confirmed is marked unverified.
+
+The stack already recommended in §2 and §5 (kernel `brd` or zram, `nvmet-tcp`, `nvme-cli`, and Path A Valkey) remains the first choice. The **use** rows are the concrete fallbacks and tools for that plan. **Reference only** means the repo is useful background, or a later optional trial, but should not replace that plan. **Skip** means do not use it here: missing license, a non-commercial or source-available restriction, special hardware we do not have, or a product we already replaced with Valkey.
+
+### 13.1 Recommended for this plan
+
+| Name | Link | License | Transport | Last activity | Fit | Why |
+| --- | --- | --- | --- | --- | --- | --- |
+| Linux kernel (`brd`, zram, `nvmet`, `nvme-tcp`, NBD, bcache) | [torvalds/linux](https://github.com/torvalds/linux) | GPL-2.0-only WITH Linux-syscall-note (from `COPYING`) | TCP (`nvmet-tcp`, NBD); RDMA exists in the kernel but is not required | 2026-11-17 01:35 Asia/Taipei | use | Already the Path B plan in this document. |
+| nvme-cli | [linux-nvme/nvme-cli](https://github.com/linux-nvme/nvme-cli) | GPL-2.0 (file `LICENSE`) | TCP and RDMA (use TCP) | 2026-11-17 04:19 Asia/Taipei | use | Client and management tool for the NVMe-oF connect steps in §5. |
+| libnvme | [linux-nvme/libnvme](https://github.com/linux-nvme/libnvme) | LGPL-2.1 (file `COPYING`) | TCP (`nvme-tcp` is mentioned in the repo README) | 2026-11-14 02:57 Asia/Taipei | use | Library behind nvme-cli. |
+| nbdkit, including the memory plugin | [nbdkit/nbdkit](https://gitlab.com/nbdkit/nbdkit) (canonical; the [GitHub mirror](https://github.com/libguestfs/nbdkit) is marked unmaintained) | BSD-3-Clause (file `LICENSE`) | TCP (NBD) | 2026-11-09 23:23 Asia/Taipei | use | Userspace RAM-backed NBD export (`nbdkit memory 1G` and larger). Preferred concrete fallback when kernel NVMe-oF TCP is unavailable. |
+| nbd | [NetworkBlockDevice/nbd](https://github.com/NetworkBlockDevice/nbd) | GPL-2.0 (file `COPYING`) | TCP | 2026-10-04 17:37 Asia/Taipei | use | Classic `nbd-server`. Back it with tmpfs or a file on a RAM disk if nbdkit is not in the distro. |
+| targetcli-fb | [open-iscsi/targetcli-fb](https://github.com/open-iscsi/targetcli-fb) | Apache-2.0 (file `COPYING`) | iSCSI (TCP) | 2026-08-19 14:56 Asia/Taipei | use | Userspace shell for the kernel LIO ramdisk iSCSI fallback already mentioned in this spec. |
+| tgt | [fujita/tgt](https://github.com/fujita/tgt) | GPL-2.0 (file `LICENSE`) | iSCSI over Ethernet; RDMA also exists | 2026-11-02 19:40 Asia/Taipei | use | Userspace iSCSI target, if LIO/`targetcli` is inconvenient. |
+| Valkey | [valkey-io/valkey](https://github.com/valkey-io/valkey) | BSD-3-Clause (file `COPYING`) | TCP (the README also mentions RDMA) | 2026-11-17 14:37 Asia/Taipei | use | Already Path A. Cache-Me-Outside stays on Valkey. |
+
+### 13.2 Reference only
+
+| Name | Link | License | Transport | Last activity | Fit | Why |
+| --- | --- | --- | --- | --- | --- | --- |
+| SPDK | [spdk/spdk](https://github.com/spdk/spdk) | BSD-3-Clause for most of the repo; some BSD-2-Clause files; submodules have their own licenses (file `LICENSE`) | TCP and RDMA, plus iSCSI | 2026-11-16 16:38 Asia/Taipei | reference only | Userspace NVMe-oF target that can sit on a RAM block device. Optional later if kernel `nvmet-tcp` is too slow; more operational complexity. |
+| Open CAS Linux | [Open-CAS/open-cas-linux](https://github.com/Open-CAS/open-cas-linux) | BSD-3-Clause (file `LICENSE.md`) | Local block cache; the cache device can be the remote RAM disk | 2026-11-05 23:48 Asia/Taipei | reference only | Alternative to bcache / LVM cache in §5.5, not a network transport of its own. |
+| r3map | [pojntfx/r3map](https://github.com/pojntfx/r3map) | Apache-2.0 (file `LICENSE`) | TCP / NBD | 2024-08-16 09:40 Asia/Taipei | reference only | User-space remote memory mounts and migrations. A possible lab trial, but last default-branch commit is mid-2024 and it is not a replacement for kernel NVMe-oF. |
+| ram-dl | [pojntfx/ram-dl](https://github.com/pojntfx/ram-dl) | Apache-2.0 (file `LICENSE`) | NBD, talking to a `ram-ul` backend | 2024-07-30 08:40 Asia/Taipei | reference only | Tech demo that exposes remote RAM as swap via go-nbd and r3map. Useful to read, not a production path. |
+| go-nbd | [pojntfx/go-nbd](https://github.com/pojntfx/go-nbd) | Apache-2.0 (file `LICENSE`) | NBD | 2024-07-31 07:28 Asia/Taipei | reference only | Library behind ram-dl. |
+| memcached | [memcached/memcached](https://github.com/memcached/memcached) | BSD-3-Clause (file `LICENSE`) | not stated in the short README scan; typically TCP (unverified in this pass beyond the repo license and activity) | 2026-07-10 12:11 Asia/Taipei | reference only | CMO is Valkey. A memcached listener is already listed as not in the tree today. |
+| Garnet | [microsoft/garnet](https://github.com/microsoft/garnet) | MIT (file `LICENSE`) | not stated in the short README scan | 2026-11-17 07:08 Asia/Taipei | reference only | RESP-compatible cache-store. An alternative to Valkey, not needed for this plan. |
+| KeyDB | [Snapchat/KeyDB](https://github.com/Snapchat/KeyDB) | BSD-3-Clause (file `COPYING`) | TCP | 2024-04-05 04:26 Asia/Taipei | reference only | Multithreaded Redis fork. Default-branch commits stopped in 2024. |
+| Apache Ignite | [apache/ignite](https://github.com/apache/ignite) | Apache-2.0 (file `LICENSE`) | not stated in the short README scan | 2026-11-17 04:42 Asia/Taipei | reference only | In-memory data grid. Much heavier than a RAM node or a Valkey process. |
+| Alluxio | [Alluxio/alluxio](https://github.com/Alluxio/alluxio) | Apache-2.0 (file `LICENSE`) | not stated in the short README scan | 2026-09-01 15:54 Asia/Taipei | reference only | Data orchestration / storage cache, not a way to export a server's RAM as a block device. |
+| CacheLib | [meta/CacheLib](https://github.com/meta/CacheLib) | Apache-2.0 (file `LICENSE`) | in-process library, not a network RAM export | 2026-11-17 10:17 Asia/Taipei | reference only | Pluggable in-process cache engine. |
+| AIFM | [AIFM-sys/AIFM](https://github.com/AIFM-sys/AIFM) | MIT (file `LICENSE`) | TCP, via the Shenango runtime (README) | 2023-03-01 02:52 Asia/Taipei | reference only | Research prototype for application-integrated far memory, not a general RAM disk or swap device. Last default-branch commit is 2023. |
+| Fastswap | [clusterfarmem/fastswap](https://github.com/clusterfarmem/fastswap) | LGPL-2.1 (file `LICENSE`) | RDMA | 2022-07-06 02:26 Asia/Taipei | reference only | Far-memory swap that needs RDMA and patches on Linux 4.11. Not a fit for a plain 10 or 25 GbE TCP node. |
+| RAMCloud | [PlatformLab/RAMCloud](https://github.com/PlatformLab/RAMCloud) | ISC (file `LICENSE`) | not stated in the README (unverified) | 2019-10-17 07:46 Asia/Taipei | reference only | The repo banner says it is no longer maintained. Last default-branch commit is 2019. |
+| Leap | [SymbioticLab/Leap](https://github.com/SymbioticLab/Leap) | GPL-2.0 (file `COPYING` is the Linux kernel license text) | RDMA / InfiniBand | 2020-07-16 16:18 Asia/Taipei | reference only | Research prefetch/data-path work for memory disaggregation. RDMA, stale. |
+| OpenFAM | [OpenFAM/OpenFAM](https://github.com/OpenFAM/OpenFAM) | BSD-3-Clause (file `LICENSE`) | RDMA | 2024-09-16 18:17 Asia/Taipei | reference only | Fabric-attached memory API. Needs an RDMA fabric. |
+
+### 13.3 Skip
+
+| Name | Link | License | Transport | Last activity | Fit | Why |
+| --- | --- | --- | --- | --- | --- | --- |
+| Redis | [redis/redis](https://github.com/redis/redis) | Redis 8 and later: RSALv2, or SSPLv1, or AGPLv3 (file `LICENSE.txt`). 7.2 and earlier remain BSD-3-Clause, per that file. | not stated in the license-file pass | 2026-11-17 13:15 Asia/Taipei | skip | Source-available / AGPL / SSPL terms on current releases. CMO already uses Valkey. Flag for Marcus. |
+| Dragonfly | [dragonflydb/dragonfly](https://github.com/dragonflydb/dragonfly) | Dragonfly Source-Available License (DSAL) (file `LICENSE.md`). Production use is capped at 100 vCPUs in aggregate; a commercial license is required above that. | TCP | 2026-11-17 03:41 Asia/Taipei | skip | Source-available production cap. Flag for Marcus. |
+| Hazelcast | [hazelcast/hazelcast](https://github.com/hazelcast/hazelcast) | Mixed: Apache-2.0 by default, or the Hazelcast Community License when a file header says so (file `LICENSE`) | not stated in the short README scan | 2026-11-17 01:18 Asia/Taipei | skip | Mixed license, and it is a data platform, not a RAM-disk export. Flag the Community License for Marcus. |
+| FluidMem | [blakecaldwell/fluidmem](https://github.com/blakecaldwell/fluidmem) | CC-BY-NC-SA 4.0 (file `LICENSE`) | not stated in the README (unverified) | 2020-04-22 03:03 Asia/Taipei | skip | Non-commercial license. Flag for Marcus. Also stale. |
+| Infiniswap | [SymbioticLab/Infiniswap](https://github.com/SymbioticLab/Infiniswap) | No license file found in the default-branch tree on 2026-11-17 | RDMA / InfiniBand (README) | 2019-04-05 23:47 Asia/Taipei | skip | No license file, RDMA, last commit 2019. Do not use. |
+| Hydra | [SymbioticLab/Hydra](https://github.com/SymbioticLab/Hydra) | No license file found in the default-branch tree on 2026-11-17 | RDMA / InfiniBand (README) | 2022-02-22 16:02 Asia/Taipei | skip | No license file, RDMA, research HA layer for remote memory. Do not use. |
+| Hermit | [uclasystem/hermit](https://github.com/uclasystem/hermit) | No license file found in the default-branch tree on 2026-11-17 | InfiniBand or RoCE (README) | 2023-06-11 00:38 Asia/Taipei | skip | No license file, and it needs RDMA NICs. Do not use. |
+| LegoOS | [WukLab/LegoOS](https://github.com/WukLab/LegoOS) | GPL-2.0 (file `LICENSE`) | Ethernet, InfiniBand, or RoCE (README) | 2020-10-24 09:10 Asia/Taipei | skip | Archived custom OS (OSDI 2018). Not a drop-in for a Linux RAM node. |
+| MIND | [yale-nova/mind](https://github.com/yale-nova/mind) | GPL-2.0 (file `LICENSE`) | Programmable P4 switch (README); this is not a commodity TCP path | 2025-07-24 04:09 Asia/Taipei | skip | Needs special switch hardware we do not have. |
+| On-Demand Remote Paging | [SJTU-IPADS/On-Demand-Remote-Paging](https://github.com/SJTU-IPADS/On-Demand-Remote-Paging) | No license file found in the default-branch tree on 2026-11-17 | RDMA (README) | 2025-05-28 15:59 Asia/Taipei | skip | No license file, RDMA, small research tree. Do not use. |
+| Lethe | [Gejsi/lethe](https://github.com/Gejsi/lethe) | No license file found in the default-branch tree on 2026-11-17 | RDMA / InfiniBand (README) | 2026-03-07 23:25 Asia/Taipei | skip | No license file, RDMA, no stars at check time. Do not use. |
+| DistSwap | [garvitdua04/DistSwap](https://github.com/garvitdua04/DistSwap) | No license file found in the default-branch tree on 2026-11-17 | not stated in the README scan (unverified) | 2025-12-12 01:35 Asia/Taipei | skip | No license file, very small tree. Do not use. |
+
+### 13.4 License flags for Marcus
+
+These are not legal advice. They are the terms that stood out in the license files on 2026-11-17, if anyone later wants to vendor, host, or ship one of these projects:
+
+- **Redis 8+** (`LICENSE.txt`): RSALv2 *or* SSPLv1 *or* AGPLv3. Flag AGPL and SSPL. Redis 7.2 and earlier are described in that same file as remaining BSD-3-Clause.
+- **Dragonfly** (`LICENSE.md`): Dragonfly Source-Available License (DSAL). Production use is limited to 100 vCPUs in aggregate across instances; a commercial license is required above that.
+- **Hazelcast** (`LICENSE`): Apache-2.0 by default, but some files use the Hazelcast Community License.
+- **FluidMem** (`LICENSE`): CC-BY-NC-SA 4.0 (non-commercial). Do not use in a product.
+- **No license file found**, so do not use: Infiniswap, Hydra, Hermit, On-Demand Remote Paging, Lethe, DistSwap.
+- **GPL-2.0** (and the kernel's GPL-2.0-only WITH Linux-syscall-note): Linux, nvme-cli, nbd, tgt, Leap, LegoOS, MIND. Fine to *run* on a lab or production host; copying code into a non-GPL CMO tree would need a separate license review.
+- **LGPL-2.1**: libnvme, Fastswap.
+- **SPDK**: BSD-3-Clause for most of the repo, with some BSD-2-Clause files and separately licensed submodules.
+
 ## References
 
 - Astera Labs, Leo Smart Memory Controllers: <https://www.asteralabs.com/products/leo-smart-memory-controllers/>
@@ -522,3 +596,15 @@ Interactive desktops (if Dad's computer or a similar machine is used as a client
 - ArchWiki, NVMe over Fabrics (connect, `nvmetcli` limits, DH-HMAC-CHAP): <https://wiki.archlinux.org/title/NVMe_over_Fabrics>
 - SUSE, NVMe-oF and `ctrl-loss-tmo`: <https://documentation.suse.com/sles/15-SP6/html/SLES-all/cha-nvmeof.html>
 - Cache-Me-Outside operator docs: [README](../cache-me-outside/README.md), [scaling](../cache-me-outside/scaling.md), [security](../cache-me-outside/security.md), [hybrid storage](../cache-me-outside/hybrid-storage.md), [near cache](../cache-me-outside/near-cache.md), [virtual machines](../cache-me-outside/virtual-machines.md)
+
+- nbdkit (canonical): <https://gitlab.com/nbdkit/nbdkit>
+- nbdkit memory plugin documentation is in-tree at `plugins/memory/nbdkit-memory-plugin.pod`
+- Network Block Device: <https://github.com/NetworkBlockDevice/nbd>
+- nvme-cli: <https://github.com/linux-nvme/nvme-cli>
+- libnvme: <https://github.com/linux-nvme/libnvme>
+- targetcli-fb: <https://github.com/open-iscsi/targetcli-fb>
+- tgt: <https://github.com/fujita/tgt>
+- Valkey: <https://github.com/valkey-io/valkey>
+- Linux kernel source (for license and modules cited above): <https://github.com/torvalds/linux>
+- r3map: <https://github.com/pojntfx/r3map>
+- ram-dl: <https://github.com/pojntfx/ram-dl>
