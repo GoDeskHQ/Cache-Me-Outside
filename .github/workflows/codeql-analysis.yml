@@ -25,6 +25,8 @@ permissions:
 jobs:
   analyze:
     name: Analyze
+    # cpp autobuild OOMed the 8 GiB runner once and then failed cmake
+    # autobuild under the 5G heavy slice. Keep this job on GitHub-hosted.
     runs-on: ubuntu-latest
     if: github.event_name != 'schedule' || github.repository == 'valkey-io/valkey'
     permissions:
@@ -44,8 +46,11 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@c793b717bc78562f491db7b0e93a3a178b099162 # v4.32.5
+      # cmake autobuild fails with "server.h: No such file or directory"
+      # (src/tier/tier.h) on both the self-hosted runner and ubuntu-latest,
+      # and is already red on unstable. The project is built with make.
+      - name: Build
+        run: make -j"$(nproc)"
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@c793b717bc78562f491db7b0e93a3a178b099162 # v4.32.5

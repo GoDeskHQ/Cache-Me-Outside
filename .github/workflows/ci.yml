@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   validate-commands-def:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - name: Checkout Valkey
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -32,7 +32,7 @@ jobs:
           git ls-files --error-unmatch src/commands.def > /dev/null
 
   test-ubuntu-latest:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - name: Install libbacktrace
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -60,7 +60,7 @@ jobs:
           make test-unit
 
   test-ubuntu-latest-compatibility:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     strategy:
       fail-fast: false
       matrix:
@@ -105,7 +105,7 @@ jobs:
             --other-server-path tests/tmp/valkey-${{ matrix.server.version }}-noble-x86_64/bin/valkey-server
 
   test-ubuntu-latest-cmake-tls:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: cmake and make
@@ -124,7 +124,7 @@ jobs:
         run: make -C build-release test-unit
 
   test-sanitizer-address:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - name: Install libbacktrace
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -151,7 +151,7 @@ jobs:
           make test-unit
 
   test-rdma:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - name: Install libbacktrace
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -185,7 +185,7 @@ jobs:
         run: sudo dmesg -c
 
   test-tls-only:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: generate-test-certificates
@@ -204,7 +204,7 @@ jobs:
         run: ./runtest --verbose --single unit/tls --dump-logs --tls
 
   build-debian-old:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     container: debian:bookworm
     steps:
       - name: Install libbacktrace
@@ -254,7 +254,7 @@ jobs:
           make test-unit
 
   build-32bit:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - name: Install libbacktrace
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -306,7 +306,7 @@ jobs:
             GTEST_LIBS="/usr/lib32/libgtest.a /usr/lib32/libgmock.a"
 
   build-libc-malloc:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - name: Install libbacktrace
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -321,7 +321,7 @@ jobs:
         run: make -j4 SERVER_CFLAGS='-Werror' MALLOC=libc USE_LIBBACKTRACE=yes
 
   build-almalinux8-jemalloc:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     container: almalinux:8
     steps:
       - name: Install libbacktrace
@@ -340,7 +340,7 @@ jobs:
         run: make -j4 SERVER_CFLAGS='-Werror' USE_LIBBACKTRACE=yes
 
   format-yaml:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, godesk]
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
