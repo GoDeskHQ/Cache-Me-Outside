@@ -12,6 +12,7 @@ on:
     paths-ignore:
       - '**/*.md'
       - '**/00-RELEASENOTES'
+  workflow_dispatch:
 
 concurrency:
   group: reuse-${{ github.head_ref || github.ref_name }}

@@ -16,6 +16,7 @@ on:
       - '**/*.md'
       - '**/00-RELEASENOTES'
       - '**/COPYING'
+  workflow_dispatch:
 
 concurrency:
   group: codecov-${{ github.head_ref || github.ref_name }}

@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'src/commands/*.json'
+  workflow_dispatch:
 
 concurrency:
   group: reply-schemas-linter-${{ github.head_ref || github.ref_name }}
