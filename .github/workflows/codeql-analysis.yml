@@ -14,6 +14,7 @@ on:
   schedule:
     # run weekly new vulnerability was added to the database
     - cron: '0 3 * * 0'
+  workflow_dispatch:
 
 concurrency:
   group: codeql-${{ github.head_ref || github.ref_name }}

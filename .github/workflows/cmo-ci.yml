@@ -3,6 +3,7 @@ name: Cache-Me-Outside
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: cmo-ci-${{ github.head_ref || github.ref_name }}

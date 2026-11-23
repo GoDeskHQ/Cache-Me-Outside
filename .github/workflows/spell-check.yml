@@ -8,6 +8,7 @@ name: Spellcheck
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: spellcheck-${{ github.head_ref || github.ref_name }}
